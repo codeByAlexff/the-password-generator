@@ -1,0 +1,168 @@
+import tkinter as tk
+from tkinter import ttk
+import random
+import string
+import secrets
+
+
+
+WORDS = [
+    "apple", "bridge", "cloud", "dragon", "eagle", "forest", "garden",
+    "harbor", "island", "jungle", "knight", "lemon", "mountain", "noble",
+    "ocean", "planet", "queen", "river", "silver", "tiger", "umbrella",
+    "valley", "winter", "yellow", "anchor", "blaze", "crystal", "dawn",
+    "ember", "flame", "glacier", "horizon", "iron", "jade", "karma",
+    "lantern", "maple", "nebula", "orbit", "pine", "quartz", "raven",
+    "storm", "thorn", "ultra", "viper", "wave", "xenon", "yarn", "zenith"
+]
+
+def generate_password(length, use_upper, use_lower, use_digits, use_symbols):
+    chars = ""
+    if use_upper: chars += string.ascii_uppercase
+    if use_lower: chars += string.ascii_lowercase
+    if use_digits: chars += string.digits
+    if use_symbols: chars += "!@#$%^&*-"
+    if not chars:
+        return "Select at least one character type!"
+    return ''.join(secrets.choice(chars) for _ in range(length))
+
+def generate_passphrase(word_count):
+    words = [secrets.choice(WORDS) for _ in range(word_count)]
+    return '-'.join(words)
+
+def analyze_strength(password):
+    score = 0
+    if len(password) >= 8: score += 1
+    if len(password) >= 14: score += 1
+    if any(c.isupper() for c in password): score += 1
+    if any(c.islower() for c in password): score += 1
+    if any(c.isdigit() for c in password): score += 1
+    if any(c in "!@#$%^&*-" for c in password): score += 1
+    if score <= 2: return "Weak", "#E24B4A"
+    if score <= 4: return "Medium", "#EF9F27"
+    return "Strong", "#1D9E75"
+
+
+class App:
+    def __init__(self, root):
+        root.title("Password Generator")
+        root.resizable(False, False)
+        root.configure(bg="#f5f5f5")
+
+        pad = {"padx": 18, "pady" : 8}
+        self.mode = tk.StringVar(value="random")
+
+
+        #Mode Toggle
+        mode_frame = tk.Frame(root, bg="#f5f5f5")
+        mode_frame.pack(fill="x", **pad)
+        tk.Label(mode_frame, text="Mode", bg="#f5f5f5", fg="#000000", font=("Arial", 11, "bold")).pack(side="left")
+        tk.Radiobutton(mode_frame, text="Random password", fg="#000000", variable=self.mode,
+            value="random", bg="#f5f5f5", command=self.update_ui).pack(side="left", padx=(12, 4))
+        tk.Radiobutton(mode_frame, text="Passphrase", fg="#000000", variable=self.mode,
+            value="passphrase", bg="#f5f5f5", command=self.update_ui).pack(side="left")
+        
+        #Random Password Options
+        self.random_frame = tk.Frame(root, bg="#f5f5f5")
+        self.random_frame.pack(fill="x", padx=18)
+
+        len_frame = tk.Frame(self.random_frame, bg="#f5f5f5")
+        len_frame.pack(fill="x", pady=(4,0))
+        tk.Label(len_frame, text="Length:", bg="#f5f5f5", fg="#000000", font=("Arial", 10)).pack(side="left")
+        self.length_val = tk.Label(len_frame, text="16", bg="#f5f5f5", fg="#000000", font=("Arial", 10, "bold"), width=3)
+        self.length_val.pack(side="right")
+        self.length_slider = tk.Scale(self.random_frame, from_=6, to=32, orient="horizontal",
+            bg="#f5f5f5", highlightthickness=0, command=lambda v: self.length_val.config(text=v))
+        self.length_slider.set(16)
+        self.length_slider.pack(fill="x")
+
+        self.use_upper = tk.BooleanVar(value=True)
+        self.use_lower = tk.BooleanVar(value=True)
+        self.use_digits = tk.BooleanVar(value=True)
+        self.use_symbols = tk.BooleanVar(value=True)
+
+        cb_frame = tk.Frame(self.random_frame, bg="#f5f5f5")
+        cb_frame.pack(fill="x", pady=(0, 6))
+        for text, var in [("Uppercase", self.use_upper), ("Lowercase", self.use_lower),
+                          ("Numbers", self.use_digits), ("Symbols", self.use_symbols)]:
+            tk.Checkbutton(cb_frame, text=text, variable=var, bg="#f5f5f5", fg="black").pack(side="left", padx=4)
+
+#Passphrase Options
+        self.pass_frame = tk.Frame(root, bg="#f5f5f5")
+        wc_frame = tk.Frame(self.pass_frame, bg="#f5f5f5")
+        wc_frame.pack(fill="x", pady=(4, 0), padx=0)
+        tk.Label(wc_frame, text="Word count", bg="#f5f5f5", fg="#000000", font=("Arial", 10)).pack(side="left")
+        self.wc_val = tk.Label(wc_frame, text="4", bg="#f5f5f5", font=("Arial", 10, "bold"), width=3)
+        self.wc_val.pack(side="right")
+        self.wc_slider = tk.Scale(self.pass_frame, from_=3, to=8, orient="horizontal",
+            bg="#f5f5f5", highlightthickness=0, command=lambda v: self.wc_val.config(text=v))
+        self.wc_slider.set(4)
+        self.wc_slider.pack(fill="x")
+
+        #Output Field
+        out_frame = tk.Frame(root, bg="#f5f5f5")
+        out_frame.pack(fill="x", **pad)
+        self.output = tk.Entry(out_frame, font=("Courier", 13), fg="#000000", width=34, justify="center", relief="flat", bg="white", bd=1)
+        self.output.pack(fill="x", ipady=6)
+
+        #Strength Bar
+        self.strength_label =tk.Label(root, text="", bg="#f5f5f5", fg="black", font=("Arial", 10, "bold"))
+        self.strength_label.pack()
+
+        self.strength_bar = tk.Canvas(root, height=8, bg="#e0e0e0", highlightthickness=0, relief="flat")
+        self.strength_bar.pack(fill="x", padx=18, pady=(2,10))
+
+
+        #Buttons
+
+        btn_frame = tk.Frame(root, bg="#f5f5f5")
+        btn_frame.pack(pady=(0,16))
+        tk.Button(btn_frame, text="Generate", font=("Arial", 11, "bold"), bg="#534AB7", fg="black", relief="flat", padx=20, pady=6, command=self.generate).pack(side="left",padx=6)
+        tk.Button(btn_frame, text="Copy", font=("Arial", 11), bg="#1D9E75", fg="black", relief="flat", padx=20, pady=6, command=self.copy).pack(side="left", padx=6)
+
+        self.update_ui()
+        self.generate()
+
+    def update_ui(self):
+            if self.mode.get() == "random":
+                self.pass_frame.pack_forget()
+                self.random_frame.pack(fill="x", padx=18)
+            else:
+                self.random_frame.pack_forget()
+                self.pass_frame.pack(fill="x", padx=18)
+
+        
+    def generate(self):
+            if self.mode.get() == "random":
+                pwd = generate_password(
+                    self.length_slider.get(),
+                    self.use_upper.get(),
+                    self.use_lower.get(),
+                    self.use_digits.get(),
+                    self.use_symbols.get()
+                )
+            else:
+                pwd = generate_passphrase(self.wc_slider.get())
+
+            self.output.delete(0, tk.END)
+            self.output.insert(0, pwd)
+            label, color = analyze_strength(pwd)
+            self.strength_label.config(text=f"Strength: {label}", fg=color)
+            self.update_bar(label, color)
+
+    def update_bar(self, label, color):
+        self.strength_bar.update_idletasks()
+        w = self.strength_bar.winfo_width()
+        fill = {"Weak": w * 0.33, "Medium": w * 0.66, "Strong": w}[label]
+        self.strength_bar.delete("all")
+        self.strength_bar.create_rectangle(0, 0, fill, 8, fill=color, outline="")
+
+    def copy(self):
+        pwd = self.output.get()
+        root.clipboard_clear()
+        root.clipboard_append(pwd)
+
+
+root = tk.Tk()
+App(root)
+root.mainloop()
